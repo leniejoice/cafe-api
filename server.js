@@ -30,10 +30,7 @@ const db = mysql.createConnection(dbConfig);
 
 // Test database connection
 db.then(() => {
-  console.log(
-    "Connected to MySQL database:",
-    process.env.DB_NAME || "via DB_URL"
-  );
+  console.log("Connected to MySQL database:", process.env.DB_NAME || "via DB_URL");
 }).catch((err) => {
   console.error("MySQL connection error:", err);
   process.exit(1); // Exit if database connection fails
