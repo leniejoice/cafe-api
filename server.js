@@ -9,19 +9,31 @@ app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Enable JSON body parsing
 
 // Database connection using environment variables
-// Using createConnection for a single connection, or createPool for multiple connections
-// For a simple app, createConnection is fine. For high traffic, use createPool.
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
+let dbConfig;
+
+// PRIORITIZE DB_URL for Railway deployments, otherwise use individual variables
+if (process.env.DB_URL) {
+  dbConfig = process.env.DB_URL; // Use the full connection URL
+  console.log("Using DB_URL for connection.");
+} else {
+  dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+  };
+  console.log("Using individual DB variables for connection.");
+}
+
+const db = mysql.createConnection(dbConfig);
 
 // Test database connection
 db.then(() => {
-  console.log("Connected to MySQL database:", process.env.DB_NAME);
+  console.log(
+    "Connected to MySQL database:",
+    process.env.DB_NAME || "via DB_URL"
+  );
 }).catch((err) => {
   console.error("MySQL connection error:", err);
   process.exit(1); // Exit if database connection fails
@@ -33,7 +45,6 @@ app.get("/", (req, res) => {
 });
 
 // Endpoint to get all products
-// Updated to use async/await with the promise-based connection
 app.get("/api/products", async (req, res) => {
   try {
     const [rows] = await db.execute(
@@ -72,17 +83,12 @@ app.post("/api/orders", async (req, res) => {
 
   let connection; // Declare connection variable outside try-block for finally access
   try {
-    // Get a connection from the pool (if using pool) or use the direct connection
-    // Since we are using createConnection, we will use db directly for queries.
-    // If you switch to createPool, you'd do: connection = await pool.getConnection();
     connection = await db; // Use the direct connection
 
     // Start a transaction for atomicity
     await connection.beginTransaction();
 
     // 1. Insert into customers table
-    // For simplicity, always inserting a new customer. In a real app, you might
-    // check if customer exists by contact_number and reuse their ID.
     const [customerResult] = await connection.execute(
       "INSERT INTO customers (name, contact_number, address) VALUES (?, ?, ?)",
       [customerName, customerContact, customerAddress]
@@ -98,22 +104,19 @@ app.post("/api/orders", async (req, res) => {
 
     // 3. Insert into order_items table for each item in the cart
     for (const item of cartItems) {
-      // Fetch product_id and current unit_price from the database to ensure data integrity
       const [productRows] = await connection.execute(
         "SELECT product_id, price FROM products WHERE name = ?",
         [item.name]
       );
 
       if (productRows.length === 0) {
-        // If a product from the cart is not found in the DB, log a warning
-        // and skip this item, or you could choose to throw an error and rollback the whole order.
         console.warn(
           `Product "${item.name}" not found in database. Skipping for order ${orderId}.`
         );
         continue;
       }
       const productId = productRows[0].product_id;
-      const unitPrice = productRows[0].price; // Use price from DB to prevent client-side tampering
+      const unitPrice = productRows[0].price;
 
       await connection.execute(
         "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
@@ -142,6 +145,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(
-    "Ensure your .env file has DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, and DB_PORT set."
+    "Ensure your .env file has DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, and DB_PORT set, or DB_URL."
   );
 });
