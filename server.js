@@ -24,6 +24,10 @@ db.connect((err) => {
   console.log("Connected to MySQL");
 });
 
+app.get("/", (req, res) => {
+  res.send("Welcome to the Café API!");
+});
+
 app.get("/products", (req, res) => {
   db.query("SELECT * FROM products", (err, results) => {
     if (err) {
