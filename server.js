@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
@@ -6,13 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const db = mysql.createConnection({
-  host: "shuttle.proxy.rlwy.net",
-  user: "root",
-  password: "qFByd1qVhGKpNXwNdWzdcrvUYGLztzj",
-  database: "railway",
-  port: 33063,
-});
+const db = mysql.createConnection(process.env.MYSQL_PUBLIC_URL);
 
 db.connect((err) => {
   if (err) {
