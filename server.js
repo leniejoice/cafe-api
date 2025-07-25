@@ -6,7 +6,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const db = mysql.createConnection(process.env.MYSQL_PUBLIC_URL);
+const db = mysql.createConnection({
+  host: "shuttle.proxy.rlwy.net",
+  user: "root",
+  password: "qFByd1qVhGKpNXwNdWzdcrvUYGLztzj",
+  database: "railway",
+  port: 33063,
+});
 
 db.connect((err) => {
   if (err) {
