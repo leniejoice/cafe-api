@@ -11,25 +11,19 @@ app.use(express.json()); // Enable JSON body parsing
 // Database connection using environment variables
 let dbConfig;
 
-// PRIORITIZE DB_URL for Railway deployments, otherwise use individual variables
+// PRIORITIZE DB_URL for Railway deployments
 if (process.env.DB_URL) {
   dbConfig = process.env.DB_URL; // Use the full connection URL
   console.log("Using DB_URL for connection.");
-} else {
-  dbConfig = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
-  };
-  console.log("Using individual DB variables for connection.");
 }
+// Removed the else block as individual DB variables are no longer needed
+// when DB_URL is the primary connection method.
 
 const db = mysql.createConnection(dbConfig);
 
 // Test database connection
 db.then(() => {
+  // Use DB_NAME if available, otherwise indicate connection via DB_URL
   console.log("Connected to MySQL database:", process.env.DB_NAME || "via DB_URL");
 }).catch((err) => {
   console.error("MySQL connection error:", err);
@@ -141,7 +135,5 @@ app.post("/api/orders", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(
-    "Ensure your .env file has DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, and DB_PORT set, or DB_URL."
   );
 });
